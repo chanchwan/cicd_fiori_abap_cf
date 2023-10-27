@@ -1,0 +1,93 @@
+_schema-version: "3.2"
+ID: ztravel_app_cpw
+description: Travel App CPW
+version: 0.0.1
+modules:
+- name: ztravel_app_cpw-dest-content
+  type: com.sap.application.content
+  requires:
+  - name: ztravel_app_cpw-destination-service
+    parameters:
+      content-target: true
+  - name: ztravel_app_cpw-repo-host
+    parameters:
+      service-key:
+        name: ztravel_app_cpw-repo-host-key
+  - name: ztravel_app_cpw-uaa
+    parameters:
+      service-key:
+        name: ztravel_app_cpw-uaa-key
+  parameters:
+    content:
+      instance:
+        destinations:
+        - Name: ztravel_app_cpw_repo_host
+          ServiceInstanceName: ztravel_app_cpw-html5-srv
+          ServiceKeyName: ztravel_app_cpw-repo-host-key
+          sap.cloud.service: ztravel_app_cpw
+        - Authentication: OAuth2UserTokenExchange
+          Name: ztravel_app_cpw_uaa
+          ServiceInstanceName: ztravel_app_cpw-xsuaa-srv
+          ServiceKeyName: ztravel_app_cpw-uaa-key
+          sap.cloud.service: ztravel_app_cpw
+        existing_destinations_policy: update
+  build-parameters:
+    no-source: true
+- name: ztravel_app_cpw-app-content
+  type: com.sap.application.content
+  path: .
+  requires:
+  - name: ztravel_app_cpw-repo-host
+    parameters:
+      content-target: true
+  build-parameters:
+    build-result: resources
+    requires:
+    - artifacts:
+      - ztravelappcpw.zip
+      name: ztravelappcpw
+      target-path: resources/
+- name: ztravelappcpw
+  type: html5
+  path: ztravel_app_cpw
+  build-parameters:
+    build-result: dist
+    builder: custom
+    commands:
+    - npm install
+    - npm run build:cf
+    supported-platforms: []
+resources:
+- name: ztravel_app_cpw-uaa
+  type: org.cloudfoundry.managed-service
+  parameters:
+    path: ./xs-security.json
+    service: xsuaa
+    service-name: ztravel_app_cpw-xsuaa-srv
+    service-plan: application
+- name: ztravel_app_cpw-destination-service
+  type: org.cloudfoundry.managed-service
+  parameters:
+    config:
+      HTML5Runtime_enabled: true
+      init_data:
+        instance:
+          destinations:
+          - Authentication: NoAuthentication
+            Name: ui5
+            ProxyType: Internet
+            Type: HTTP
+            URL: https://ui5.sap.com
+          existing_destinations_policy: update
+      version: 1.0.0
+    service: destination
+    service-name: ztravel_app_cpw-destination-service
+    service-plan: lite
+- name: ztravel_app_cpw-repo-host
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: html5-apps-repo
+    service-name: ztravel_app_cpw-html5-srv
+    service-plan: app-host
+parameters:
+  deploy_mode: html5-repo
